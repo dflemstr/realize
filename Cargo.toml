@@ -1,6 +1,14 @@
 [package]
 authors = ["David Flemström <david.flemstrom@gmail.com>"]
+categories = ["config", "command-line-utilities"]
+description = "A blazingly fast configuration management library"
+documentation = "https://docs.rs/realize"
+homepage = "https://github.com/dflemstr/realize"
+keywords = ["configuration", "administration"]
+license = "Apache-2.0"
 name = "realize"
+readme = "README.md"
+repository = "https://github.com/dflemstr/realize"
 version = "0.1.0"
 
 [dependencies]

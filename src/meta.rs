@@ -1,3 +1,4 @@
+//! Meta-resources, that manage other resources.
 use std::any;
 use std::fmt;
 
@@ -7,6 +8,8 @@ use slog;
 use error;
 use resource;
 
+/// A meta-resource that ensures that other resources are realized, in the
+/// correct dependency order.
 #[derive(Debug)]
 pub struct Reality {
     log: slog::Logger,
@@ -15,6 +18,7 @@ pub struct Reality {
 }
 
 impl Reality {
+    /// Constructs a new reality that logs to the specified logger.
     pub fn new(log: slog::Logger) -> Reality {
         Reality {
             log: log,
@@ -22,6 +26,8 @@ impl Reality {
         }
     }
 
+    /// Adds a resource to be realized (including its dependencies) when this
+    /// reality is realized.
     pub fn ensure<R>(&mut self, resource: R)
     where
         R: resource::UnresolvedResource + resource::Resource + 'static,

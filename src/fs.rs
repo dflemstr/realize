@@ -1,3 +1,4 @@
+//! File-system related resource types.
 use std::any;
 use std::fmt;
 use std::fs;
@@ -9,6 +10,7 @@ use error;
 use resource;
 use util;
 
+/// A file, which can be absent, a regular file, a directory, or a symlink.
 #[derive(Debug, Eq, PartialEq)]
 pub struct File {
     path: path::PathBuf,
@@ -24,6 +26,8 @@ enum FileType {
 }
 
 impl File {
+    /// Starts reasoning about a file at a certain path. The resulting resource
+    /// will only ensure that the file exists and is a regular file.
     pub fn at<P>(path: P) -> File
     where
         P: Into<path::PathBuf>,
@@ -34,6 +38,9 @@ impl File {
         }
     }
 
+    /// The file should contain the specified byte contents. It is recommended
+    /// to call this method with either a binary literal (`contains(b"abc")`) or
+    /// with an embedded external file (`contains(include_bytes!("my/file"))`).
     pub fn contains<B>(mut self, contents: B) -> File
     where
         B: Into<Vec<u8>>,
@@ -42,6 +49,10 @@ impl File {
         self
     }
 
+    /// The file should contain the specified string contents, encoded as UTF-8.
+    /// It is recommended to call this method with either a string literal
+    /// (`contains("abc")`) or with an embedded external file
+    /// (`contains(include_str!("my/file"))`).
     pub fn contains_str<S>(self, contents: S) -> File
     where
         S: Into<String>,
@@ -49,16 +60,19 @@ impl File {
         self.contains(contents.into().into_bytes())
     }
 
+    /// The file is a regular file, with any contents.
     pub fn is_file(mut self) -> File {
         self.file_type = FileType::File { contents: None };
         self
     }
 
+    /// The file is a directory.
     pub fn is_dir(mut self) -> File {
         self.file_type = FileType::Dir;
         self
     }
 
+    /// The file is a symlink that points to the supplied path.
     pub fn points_to<P>(mut self, path: P) -> File
     where
         P: Into<path::PathBuf>,
@@ -67,6 +81,7 @@ impl File {
         self
     }
 
+    /// The file should be absent, and will be deleted if it exists.
     pub fn is_absent(mut self) -> File {
         self.file_type = FileType::Absent;
         self
