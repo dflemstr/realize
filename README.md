@@ -31,7 +31,8 @@ fn main() {
 
 fn configuration(reality: &mut realize::Reality) {
     reality.ensure(fs::File::at("/etc/hostname").contains_str("dflemstr-desktop"));
-    // Include the ’files/etc/passwd’ file in the static binary so that the configuration is truly dependency-free
+    // Include the ’files/etc/passwd’ file in the static binary so that the
+    // configuration is truly dependency-free
     reality.ensure(fs::File::at("/etc/passwd".contains_str(include_str!("files/etc/passwd"))));
 }
 ```
