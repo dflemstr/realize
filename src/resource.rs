@@ -28,11 +28,17 @@ pub enum Key {
 
 pub trait UnresolvedResource: Resource + Eq {
     #[allow(unused_variables)]
-    fn implicit_ensure<E>(&self, ensurer: &mut E) where E: Ensurer {}
+    fn implicit_ensure<E>(&self, ensurer: &mut E)
+    where
+        E: Ensurer,
+    {
+    }
 }
 
 pub trait Ensurer {
-    fn ensure<R>(&mut self, resource: R) where R: UnresolvedResource + 'static;
+    fn ensure<R>(&mut self, resource: R)
+    where
+        R: UnresolvedResource + 'static;
 }
 
 pub struct Context<'a> {

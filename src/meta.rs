@@ -10,8 +10,8 @@ use resource;
 #[derive(Debug)]
 pub struct Reality {
     log: slog::Logger,
-    resources: linked_hash_map::LinkedHashMap<(any::TypeId, resource::Key),
-                                              Box<resource::Resource>>,
+    resources:
+        linked_hash_map::LinkedHashMap<(any::TypeId, resource::Key), Box<resource::Resource>>,
 }
 
 impl Reality {
@@ -23,22 +23,28 @@ impl Reality {
     }
 
     pub fn ensure<R>(&mut self, resource: R)
-        where R: resource::UnresolvedResource + resource::Resource + 'static
+    where
+        R: resource::UnresolvedResource + resource::Resource + 'static,
     {
         resource.implicit_ensure(self);
         let key = (any::TypeId::of::<R>(), resource.key());
-        // TODO: replace this with entry API once linked-hash-map supports that
-        if self.resources.contains_key(&key) {
-            let existing = self.resources[&key].as_any().downcast_ref::<R>().unwrap();
-            if *existing != resource {
-                let key = format!("{}", key.1);
-                let old = format!("{}", existing);
-                let new = format!("{}", resource);
-                warn!(self.log, "Duplicate resource definitions; will use the older one";
-                      "key" => key, "old" => old, "new" => new);
+
+        match self.resources.entry(key) {
+            linked_hash_map::Entry::Occupied(entry) => {
+                // This unwrap() should never panic since we use TypeId::of::<R>() as part of the
+                // key
+                let existing = entry.get().as_any().downcast_ref::<R>().unwrap();
+                if *existing != resource {
+                    let key = format!("{}", entry.key().1);
+                    let old = format!("{}", existing);
+                    let new = format!("{}", resource);
+                    warn!(self.log, "Duplicate resource definitions; will use the older one";
+                          "key" => key, "old" => old, "new" => new);
+                }
             }
-        } else {
-            self.resources.insert(key, Box::new(resource));
+            linked_hash_map::Entry::Vacant(entry) => {
+                entry.insert(Box::new(resource));
+            }
         }
     }
 }
@@ -52,7 +58,9 @@ impl resource::Resource for Reality {
     fn realize(&self, ctx: &resource::Context) -> error::Result<()> {
         use error::ResultExt;
         for (_, resource) in &self.resources {
-            resource.realize(ctx).chain_err(|| format!("Could not realize {}", resource))?;
+            resource.realize(ctx).chain_err(|| {
+                format!("Could not realize {}", resource)
+            })?;
         }
 
         Ok(())
@@ -62,7 +70,10 @@ impl resource::Resource for Reality {
         use error::ResultExt;
 
         for (_, resource) in &self.resources {
-            if !resource.verify(ctx).chain_err(|| format!("Could not verify {}", resource))? {
+            if !resource.verify(ctx).chain_err(|| {
+                format!("Could not verify {}", resource)
+            })?
+            {
                 return Ok(false);
             }
         }
@@ -77,7 +88,8 @@ impl resource::Resource for Reality {
 
 impl resource::Ensurer for Reality {
     fn ensure<R>(&mut self, resource: R)
-        where R: resource::UnresolvedResource + 'static
+    where
+        R: resource::UnresolvedResource + 'static,
     {
         Reality::ensure(self, resource)
     }

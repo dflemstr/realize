@@ -25,7 +25,8 @@ enum FileType {
 
 impl File {
     pub fn at<P>(path: P) -> File
-        where P: Into<path::PathBuf>
+    where
+        P: Into<path::PathBuf>,
     {
         File {
             path: path.into(),
@@ -34,14 +35,16 @@ impl File {
     }
 
     pub fn contains<B>(mut self, contents: B) -> File
-        where B: Into<Vec<u8>>
+    where
+        B: Into<Vec<u8>>,
     {
         self.file_type = FileType::File { contents: Some(contents.into()) };
         self
     }
 
     pub fn contains_str<S>(self, contents: S) -> File
-        where S: Into<String>
+    where
+        S: Into<String>,
     {
         self.contains(contents.into().into_bytes())
     }
@@ -57,7 +60,8 @@ impl File {
     }
 
     pub fn points_to<P>(mut self, path: P) -> File
-        where P: Into<path::PathBuf>
+    where
+        P: Into<path::PathBuf>,
     {
         self.file_type = FileType::Symlink { target: path.into() };
         self
@@ -83,13 +87,15 @@ impl resource::Resource for File {
             FileType::Absent => {
                 if self.path.is_dir() {
                     trace!(log, "Deleting directory");
-                    fs::remove_dir(&self.path)
-                        .chain_err(|| format!("Failed to delete directory {:?}", self.path))?;
+                    fs::remove_dir(&self.path).chain_err(|| {
+                        format!("Failed to delete directory {:?}", self.path)
+                    })?;
                 }
                 if self.path.is_file() {
                     trace!(log, "Deleting file");
-                    fs::remove_file(&self.path)
-                        .chain_err(|| format!("Failed to delete file {:?}", self.path))?;
+                    fs::remove_file(&self.path).chain_err(|| {
+                        format!("Failed to delete file {:?}", self.path)
+                    })?;
                 }
             }
             FileType::File { ref contents } => {
@@ -97,20 +103,24 @@ impl resource::Resource for File {
                     use std::io::Write;
 
                     trace!(log, "Updating file contents");
-                    let mut f = fs::File::create(&self.path)
-                        .chain_err(|| format!("Failed to create file {:?}", self.path))?;
-                    f.write_all(contents)
-                        .chain_err(|| format!("Failed to write to file {:?}", self.path))?;
+                    let mut f = fs::File::create(&self.path).chain_err(|| {
+                        format!("Failed to create file {:?}", self.path)
+                    })?;
+                    f.write_all(contents).chain_err(|| {
+                        format!("Failed to write to file {:?}", self.path)
+                    })?;
                 }
             }
             FileType::Dir => {
-                fs::create_dir_all(&self.path)
-                    .chain_err(|| format!("Failed to create directory {:?}", self.path))?;
+                fs::create_dir_all(&self.path).chain_err(|| {
+                    format!("Failed to create directory {:?}", self.path)
+                })?;
             }
             FileType::Symlink { ref target } => {
                 // TODO: add support for other OSes
-                os::unix::fs::symlink(target, &self.path)
-                    .chain_err(|| format!("Failed to create symlink {:?}", self.path))?;
+                os::unix::fs::symlink(target, &self.path).chain_err(|| {
+                    format!("Failed to create symlink {:?}", self.path)
+                })?;
             }
         }
         Ok(())
@@ -119,16 +129,16 @@ impl resource::Resource for File {
     fn verify(&self, &resource::Context { log, .. }: &resource::Context) -> error::Result<bool> {
         use error::ResultExt;
 
-        let path = self.path.to_string_lossy().into_owned();
-        let log = log.new(o!("path" => path));
+        let log = log.new(o!("path" => self.path.to_string_lossy().into_owned()));
 
         if !self.path.exists() {
             debug!(log, "Path does not exist");
             return Ok(false);
         }
 
-        let metadata = fs::metadata(&self.path)
-            .chain_err(|| format!("Failed to gather metadata about path {:?}", self.path))?;
+        let metadata = fs::metadata(&self.path).chain_err(|| {
+            format!("Failed to gather metadata about path {:?}", self.path)
+        })?;
         match self.file_type {
             FileType::File { ref contents } => {
                 if !metadata.file_type().is_file() {
@@ -137,10 +147,9 @@ impl resource::Resource for File {
                 }
 
                 if let Some(ref contents) = *contents {
-                    let file =
-                        fs::File::open(&self.path).chain_err(|| {
-                                format!("Failed to open file {:?} for hashing", self.path)
-                            })?;
+                    let file = fs::File::open(&self.path).chain_err(|| {
+                        format!("Failed to open file {:?} for hashing", self.path)
+                    })?;
                     let old_sha1 = util::sha1(file)
                         .chain_err(|| {
                             format!("Failed to compute SHA-1 digest of file {:?}", self.path)
@@ -168,8 +177,9 @@ impl resource::Resource for File {
                     return Ok(false);
                 }
 
-                let old_target = fs::read_link(&self.path)
-                    .chain_err(|| format!("Failed to read link target of {:?}", self.path))?;
+                let old_target = fs::read_link(&self.path).chain_err(|| {
+                    format!("Failed to read link target of {:?}", self.path)
+                })?;
                 if old_target != *new_target {
                     let old_target = old_target.to_string_lossy().into_owned();
                     let new_target = new_target.to_string_lossy().into_owned();
@@ -192,7 +202,8 @@ impl resource::Resource for File {
 
 impl resource::UnresolvedResource for File {
     fn implicit_ensure<E>(&self, ensurer: &mut E)
-        where E: resource::Ensurer
+    where
+        E: resource::Ensurer,
     {
         if let Some(parent) = self.path.parent() {
             ensurer.ensure(File::at(parent).is_dir());

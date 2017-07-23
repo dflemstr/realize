@@ -5,7 +5,8 @@ use sha1;
 use error;
 
 pub fn sha1<R>(mut read: R) -> error::Result<sha1::Digest>
-    where R: io::Read
+where
+    R: io::Read,
 {
     let mut sha1 = sha1::Sha1::new();
 

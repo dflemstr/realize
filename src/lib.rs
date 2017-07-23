@@ -4,6 +4,7 @@ extern crate linked_hash_map;
 extern crate sha1;
 #[macro_use]
 extern crate slog;
+extern crate slog_async;
 extern crate slog_journald;
 extern crate slog_term;
 
@@ -21,20 +22,29 @@ use std::process;
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 pub fn apply<F>(config: F)
-    where F: FnOnce(&mut Reality),
+where
+    F: FnOnce(&mut Reality),
 {
-    use slog::DrainExt;
-    let term_drain = slog_term::streamer().async().stderr().use_utc_timestamp().compact().build();
-    let journald_drain = slog_journald::JournaldDrain;
+    use slog::Drain;
+    let decorator = slog_term::TermDecorator::new().stderr().build();
+    let term_drain = slog_term::CompactFormat::new(decorator)
+        .use_utc_timestamp()
+        .build()
+        .fuse();
+    let term_drain = slog_async::Async::new(term_drain).build().fuse();
+    let journald_drain = slog_journald::JournaldDrain.fuse();
 
-    let drain = slog::Duplicate::new(term_drain, journald_drain);
+    let drain = slog::Duplicate::new(term_drain, journald_drain).fuse();
     let log = slog::Logger::root(drain.fuse(), o!("realize-version" => VERSION));
 
     match apply_inner(&log, config) {
         Ok(()) => (),
         Err(e) => {
-            for error in e.iter() {
-                error!(log, "{}", error);
+            for (i, error) in e.iter().enumerate() {
+                match i {
+                    0 => error!(log, "{}", error),
+                    _ => error!(log, " → {}", error),
+                }
             }
             // Ensure we log everything
             drop(log);
@@ -44,7 +54,8 @@ pub fn apply<F>(config: F)
 }
 
 pub fn apply_inner<F>(log: &slog::Logger, config: F) -> error::Result<()>
-    where F: FnOnce(&mut Reality),
+where
+    F: FnOnce(&mut Reality),
 {
     use resource::Resource;
 
