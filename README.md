@@ -1,4 +1,4 @@
-# realize
+# `realize` [![crates.io badge](https://img.shields.io/crates/v/realize.svg)](https://crates.io/crates/realize) [![docs.rs badge](https://docs.rs/realize/badge.svg)](https://docs.rs/realize)
 
 `realize` is a blazingly fast configuration management library written in Rust.
 It exposes a type-safe eDSL for writing system configuration programs.
