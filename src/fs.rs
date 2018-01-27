@@ -45,7 +45,9 @@ impl File {
     where
         B: Into<Vec<u8>>,
     {
-        self.file_type = FileType::File { contents: Some(contents.into()) };
+        self.file_type = FileType::File {
+            contents: Some(contents.into()),
+        };
         self
     }
 
@@ -77,7 +79,9 @@ impl File {
     where
         P: Into<path::PathBuf>,
     {
-        self.file_type = FileType::Symlink { target: path.into() };
+        self.file_type = FileType::Symlink {
+            target: path.into(),
+        };
         self
     }
 
@@ -102,15 +106,13 @@ impl resource::Resource for File {
             FileType::Absent => {
                 if self.path.is_dir() {
                     trace!(log, "Deleting directory");
-                    fs::remove_dir(&self.path).chain_err(|| {
-                        format!("Failed to delete directory {:?}", self.path)
-                    })?;
+                    fs::remove_dir(&self.path)
+                        .chain_err(|| format!("Failed to delete directory {:?}", self.path))?;
                 }
                 if self.path.is_file() {
                     trace!(log, "Deleting file");
-                    fs::remove_file(&self.path).chain_err(|| {
-                        format!("Failed to delete file {:?}", self.path)
-                    })?;
+                    fs::remove_file(&self.path)
+                        .chain_err(|| format!("Failed to delete file {:?}", self.path))?;
                 }
             }
             FileType::File { ref contents } => {
@@ -118,24 +120,20 @@ impl resource::Resource for File {
                     use std::io::Write;
 
                     trace!(log, "Updating file contents");
-                    let mut f = fs::File::create(&self.path).chain_err(|| {
-                        format!("Failed to create file {:?}", self.path)
-                    })?;
-                    f.write_all(contents).chain_err(|| {
-                        format!("Failed to write to file {:?}", self.path)
-                    })?;
+                    let mut f = fs::File::create(&self.path)
+                        .chain_err(|| format!("Failed to create file {:?}", self.path))?;
+                    f.write_all(contents)
+                        .chain_err(|| format!("Failed to write to file {:?}", self.path))?;
                 }
             }
             FileType::Dir => {
-                fs::create_dir_all(&self.path).chain_err(|| {
-                    format!("Failed to create directory {:?}", self.path)
-                })?;
+                fs::create_dir_all(&self.path)
+                    .chain_err(|| format!("Failed to create directory {:?}", self.path))?;
             }
             FileType::Symlink { ref target } => {
                 // TODO: add support for other OSes
-                os::unix::fs::symlink(target, &self.path).chain_err(|| {
-                    format!("Failed to create symlink {:?}", self.path)
-                })?;
+                os::unix::fs::symlink(target, &self.path)
+                    .chain_err(|| format!("Failed to create symlink {:?}", self.path))?;
             }
         }
         Ok(())
@@ -151,9 +149,8 @@ impl resource::Resource for File {
             return Ok(false);
         }
 
-        let metadata = fs::metadata(&self.path).chain_err(|| {
-            format!("Failed to gather metadata about path {:?}", self.path)
-        })?;
+        let metadata = fs::metadata(&self.path)
+            .chain_err(|| format!("Failed to gather metadata about path {:?}", self.path))?;
         match self.file_type {
             FileType::File { ref contents } => {
                 if !metadata.file_type().is_file() {
@@ -162,9 +159,8 @@ impl resource::Resource for File {
                 }
 
                 if let Some(ref contents) = *contents {
-                    let file = fs::File::open(&self.path).chain_err(|| {
-                        format!("Failed to open file {:?} for hashing", self.path)
-                    })?;
+                    let file = fs::File::open(&self.path)
+                        .chain_err(|| format!("Failed to open file {:?} for hashing", self.path))?;
                     let old_sha1 = util::sha1(file)
                         .chain_err(|| {
                             format!("Failed to compute SHA-1 digest of file {:?}", self.path)
@@ -186,15 +182,16 @@ impl resource::Resource for File {
                     return Ok(false);
                 }
             }
-            FileType::Symlink { target: ref new_target } => {
+            FileType::Symlink {
+                target: ref new_target,
+            } => {
                 if !metadata.file_type().is_symlink() {
                     debug!(log, "Path doesn't point to a symlink");
                     return Ok(false);
                 }
 
-                let old_target = fs::read_link(&self.path).chain_err(|| {
-                    format!("Failed to read link target of {:?}", self.path)
-                })?;
+                let old_target = fs::read_link(&self.path)
+                    .chain_err(|| format!("Failed to read link target of {:?}", self.path))?;
                 if old_target != *new_target {
                     let old_target = old_target.to_string_lossy().into_owned();
                     let new_target = new_target.to_string_lossy().into_owned();
@@ -238,7 +235,9 @@ impl fmt::Display for File {
         write!(f, " {:?}", self.path)?;
 
         match self.file_type {
-            FileType::File { contents: Some(ref contents) } => {
+            FileType::File {
+                contents: Some(ref contents),
+            } => {
                 let sha1 = util::sha1(io::Cursor::new(contents)).unwrap();
                 write!(f, " with sha1 {}", &format!("{}", sha1)[..8])?
             }

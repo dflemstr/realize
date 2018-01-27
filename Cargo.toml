@@ -1,10 +1,16 @@
 [package]
 authors = ["David Flemström <david.flemstrom@gmail.com>"]
-categories = ["config", "command-line-utilities"]
+categories = [
+    "config",
+    "command-line-utilities",
+]
 description = "A blazingly fast configuration management library"
 documentation = "https://docs.rs/realize"
 homepage = "https://github.com/dflemstr/realize"
-keywords = ["configuration", "administration"]
+keywords = [
+    "configuration",
+    "administration",
+]
 license = "Apache-2.0"
 name = "realize"
 readme = "README.md"
@@ -12,13 +18,16 @@ repository = "https://github.com/dflemstr/realize"
 version = "0.1.0"
 
 [dependencies]
-error-chain = "0.10.0"
-linked-hash-map = "0.4.2"
-sha1 = "0.2.0"
-slog-async = "2"
-slog-journald = "2"
-slog-term = "2"
+error-chain = "0.11.0"
+linked-hash-map = "0.5.0"
+sha1 = "0.4.0"
+slog-async = "2.2.0"
+slog-journald = "2.0.0"
+slog-term = "2.3.0"
 
 [dependencies.slog]
-features = ["release_max_level_trace", "max_level_trace"]
-version = "2"
+features = [
+    "release_max_level_trace",
+    "max_level_trace",
+]
+version = "2.1.1"

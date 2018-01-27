@@ -55,7 +55,6 @@ impl Reality {
     }
 }
 
-
 impl resource::Resource for Reality {
     fn key(&self) -> resource::Key {
         resource::Key::Seq(self.resources.values().map(|r| r.key()).collect())
@@ -64,9 +63,9 @@ impl resource::Resource for Reality {
     fn realize(&self, ctx: &resource::Context) -> error::Result<()> {
         use error::ResultExt;
         for (_, resource) in &self.resources {
-            resource.realize(ctx).chain_err(|| {
-                format!("Could not realize {}", resource)
-            })?;
+            resource
+                .realize(ctx)
+                .chain_err(|| format!("Could not realize {}", resource))?;
         }
 
         Ok(())
@@ -76,9 +75,9 @@ impl resource::Resource for Reality {
         use error::ResultExt;
 
         for (_, resource) in &self.resources {
-            if !resource.verify(ctx).chain_err(|| {
-                format!("Could not verify {}", resource)
-            })?
+            if !resource
+                .verify(ctx)
+                .chain_err(|| format!("Could not verify {}", resource))?
             {
                 return Ok(false);
             }
