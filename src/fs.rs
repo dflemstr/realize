@@ -98,7 +98,8 @@ impl resource::Resource for File {
     }
 
     fn realize(&self, &resource::Context { log, .. }: &resource::Context) -> error::Result<()> {
-        use error::ResultExt;
+        use failure::ResultExt;
+
         let path = self.path.to_string_lossy().into_owned();
         let log = log.new(o!("path" => path));
 
@@ -107,12 +108,12 @@ impl resource::Resource for File {
                 if self.path.is_dir() {
                     trace!(log, "Deleting directory");
                     fs::remove_dir(&self.path)
-                        .chain_err(|| format!("Failed to delete directory {:?}", self.path))?;
+                        .with_context(|_| format!("Failed to delete directory {:?}", self.path))?;
                 }
                 if self.path.is_file() {
                     trace!(log, "Deleting file");
                     fs::remove_file(&self.path)
-                        .chain_err(|| format!("Failed to delete file {:?}", self.path))?;
+                        .with_context(|_| format!("Failed to delete file {:?}", self.path))?;
                 }
             }
             FileType::File { ref contents } => {
@@ -121,26 +122,26 @@ impl resource::Resource for File {
 
                     trace!(log, "Updating file contents");
                     let mut f = fs::File::create(&self.path)
-                        .chain_err(|| format!("Failed to create file {:?}", self.path))?;
+                        .with_context(|_| format!("Failed to create file {:?}", self.path))?;
                     f.write_all(contents)
-                        .chain_err(|| format!("Failed to write to file {:?}", self.path))?;
+                        .with_context(|_| format!("Failed to write to file {:?}", self.path))?;
                 }
             }
             FileType::Dir => {
                 fs::create_dir_all(&self.path)
-                    .chain_err(|| format!("Failed to create directory {:?}", self.path))?;
+                    .with_context(|_| format!("Failed to create directory {:?}", self.path))?;
             }
             FileType::Symlink { ref target } => {
                 // TODO: add support for other OSes
                 os::unix::fs::symlink(target, &self.path)
-                    .chain_err(|| format!("Failed to create symlink {:?}", self.path))?;
+                    .with_context(|_| format!("Failed to create symlink {:?}", self.path))?;
             }
         }
         Ok(())
     }
 
     fn verify(&self, &resource::Context { log, .. }: &resource::Context) -> error::Result<bool> {
-        use error::ResultExt;
+        use failure::ResultExt;
 
         let log = log.new(o!("path" => self.path.to_string_lossy().into_owned()));
 
@@ -150,7 +151,7 @@ impl resource::Resource for File {
         }
 
         let metadata = fs::metadata(&self.path)
-            .chain_err(|| format!("Failed to gather metadata about path {:?}", self.path))?;
+            .with_context(|_| format!("Failed to gather metadata about path {:?}", self.path))?;
         match self.file_type {
             FileType::File { ref contents } => {
                 if !metadata.file_type().is_file() {
@@ -159,15 +160,16 @@ impl resource::Resource for File {
                 }
 
                 if let Some(ref contents) = *contents {
-                    let file = fs::File::open(&self.path)
-                        .chain_err(|| format!("Failed to open file {:?} for hashing", self.path))?;
+                    let file = fs::File::open(&self.path).with_context(|_| {
+                        format!("Failed to open file {:?} for hashing", self.path)
+                    })?;
                     let old_sha1 = util::sha1(file)
-                        .chain_err(|| {
+                        .with_context(|_| {
                             format!("Failed to compute SHA-1 digest of file {:?}", self.path)
                         })?
                         .to_string();
                     let new_sha1 = util::sha1(io::Cursor::new(contents))
-                        .chain_err(|| "Failed to compute SHA-1 digest")?
+                        .with_context(|_| "Failed to compute SHA-1 digest")?
                         .to_string();
                     if old_sha1 != new_sha1 {
                         debug!(log, "File has wrong contents";
@@ -191,7 +193,7 @@ impl resource::Resource for File {
                 }
 
                 let old_target = fs::read_link(&self.path)
-                    .chain_err(|| format!("Failed to read link target of {:?}", self.path))?;
+                    .with_context(|_| format!("Failed to read link target of {:?}", self.path))?;
                 if old_target != *new_target {
                     let old_target = old_target.to_string_lossy().into_owned();
                     let new_target = new_target.to_string_lossy().into_owned();

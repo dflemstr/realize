@@ -11,12 +11,13 @@
 //! several resources and the dependencies between them. One such resource is
 //! the `Reality` resource, that can `ensure` that other resources are realized.
 
-#![deny(missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
-        trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
-        unused_qualifications)]
+#![deny(
+    missing_docs, missing_debug_implementations, missing_copy_implementations, trivial_casts,
+    trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces,
+    unused_qualifications
+)]
 
-#[macro_use]
-extern crate error_chain;
+extern crate failure;
 extern crate linked_hash_map;
 extern crate sha1;
 #[macro_use]
@@ -60,11 +61,9 @@ where
     match apply_inner(&log, config) {
         Ok(()) => (),
         Err(e) => {
-            for (i, error) in e.iter().enumerate() {
-                match i {
-                    0 => error!(log, "{}", error),
-                    _ => error!(log, " → {}", error),
-                }
+            error!(log, "{}", e);
+            for error in e.iter_causes() {
+                error!(log, " → {}", error);
             }
             // Ensure we log everything
             drop(log);

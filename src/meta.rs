@@ -61,23 +61,24 @@ impl resource::Resource for Reality {
     }
 
     fn realize(&self, ctx: &resource::Context) -> error::Result<()> {
-        use error::ResultExt;
+        use failure::ResultExt;
+
         for (_, resource) in &self.resources {
             resource
                 .realize(ctx)
-                .chain_err(|| format!("Could not realize {}", resource))?;
+                .with_context(|_| format!("Could not realize {}", resource))?;
         }
 
         Ok(())
     }
 
     fn verify(&self, ctx: &resource::Context) -> error::Result<bool> {
-        use error::ResultExt;
+        use failure::ResultExt;
 
         for (_, resource) in &self.resources {
             if !resource
                 .verify(ctx)
-                .chain_err(|| format!("Could not verify {}", resource))?
+                .with_context(|_| format!("Could not verify {}", resource))?
             {
                 return Ok(false);
             }
